@@ -1,0 +1,91 @@
+consumes:
+- application/json
+definitions:
+  httpserver.UserResponse:
+    properties:
+      error:
+        example: some error message
+        type: string
+      url:
+        example: http://example.com
+        type: string
+    type: object
+  models.UserRequest:
+    properties:
+      url:
+        example: http://example.com
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: svebo3348@gmail.com
+    name: Maintainer
+    url: https://github.com/Sveboo/url_shortener
+  description: A collection of endpoints available to communicate with url shortener
+  license:
+    name: MIT
+    url: https://github.com/Sveboo/url_shortener/blob/main/LICENSE
+  title: Url shortener documentation
+  version: "0.1"
+paths:
+  /:
+    post:
+      consumes:
+      - application/json
+      description: Shorten url provided in body and save it to storage
+      parameters:
+      - description: Original url with protocol included
+        in: body
+        name: url
+        required: true
+        schema:
+          $ref: '#/definitions/models.UserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Url shortened successfully
+          schema:
+            $ref: '#/definitions/httpserver.UserResponse'
+        "400":
+          description: Json is invalid
+          schema:
+            $ref: '#/definitions/httpserver.UserResponse'
+        "422":
+          description: Key 'url' is invalid or not provided
+          schema:
+            $ref: '#/definitions/httpserver.UserResponse'
+        "500":
+          description: Short url creation caused error
+          schema:
+            $ref: '#/definitions/httpserver.UserResponse'
+      summary: Shorten url
+  /{hash}:
+    get:
+      consumes:
+      - application/json
+      description: Returns origin url by short form
+      parameters:
+      - description: Short url hash
+        in: query
+        name: short_url
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Short url exists in storage
+          schema:
+            $ref: '#/definitions/httpserver.UserResponse'
+        "400":
+          description: Short url not found in storage
+          schema:
+            $ref: '#/definitions/httpserver.UserResponse'
+      summary: Get original url
+produces:
+- application/json
+schemes:
+- http
+swagger: "2.0"
