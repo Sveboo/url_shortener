@@ -24,6 +24,7 @@ Base62 encoding is used.
   - [Endpoints](#endpoints)
   - [Swagger](#swagger)
   - [How It Works](#how-it-works)
+  - [Testing](#testing)
   - [Roadmap](#roadmap)
   - [Issues](#issues)
 
@@ -67,9 +68,14 @@ If such a hash already exists, a reasonable number of attempts are made to recre
 
 After receiving the short name, you can make a GET request to the server and get the full URL of the original resource.
 
+## Testing
+
+Code is covered with unit tests. Current test coverage is just under **60%**. You can see detailed information in [cov.html](cov.html)
+
 ## Roadmap
+
 - [x] Cover the code with tests
-- [ ] Make Docker-image publicly available
+- [x] Make Docker-image publicly available
 - [ ] In the future, it is planned to add the ability to automatically redirect to the initial resource instead of returning it in the response body
 
 ## Issues
