@@ -16,6 +16,7 @@ package main
 import (
 	"context"
 	"flag"
+	"math/rand"
 	"shortener/internal/app"
 
 	"fmt"
@@ -29,6 +30,7 @@ import (
 
 	_ "shortener/docs"
 
+	"github.com/jxskiss/base62"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -53,19 +55,24 @@ func captureSigQuit(ctx context.Context) func() error {
 	}
 }
 
+func hash(randInt int64) string {
+	shortUrl := base62.EncodeToString(base62.FormatInt(randInt))
+	return shortUrl
+}
+
 //	@title			Url shortener documentation
 //	@version		0.1
 //	@description	A collection of endpoints available to communicate with url shortener
 
-//	@contact.name	Maintainer
-//	@contact.url	https://github.com/Sveboo/url_shortener
-//	@contact.email	svebo3348@gmail.com
-//	@license.name	MIT
-//	@license.url	https://github.com/Sveboo/url_shortener/blob/main/LICENSE
-//	@host			localhost:8080
-//	@accept			json
-//	@produce		json
-//	@schemes		http
+// @contact.name	Maintainer
+// @contact.url	https://github.com/Sveboo/url_shortener
+// @contact.email	svebo3348@gmail.com
+// @license.name	MIT
+// @license.url	https://github.com/Sveboo/url_shortener/blob/main/LICENSE
+// @host			localhost:8080
+// @accept			json
+// @produce		json
+// @schemes		http
 func main() {
 	eg, ctx := errgroup.WithContext(context.Background())
 	// capture signals to stop working
@@ -91,7 +98,7 @@ func main() {
 		s = storage.NewMapStorage()
 	}
 
-	us := app.NewUrlShortener(s, fmt.Sprintf("%s%s", domainName, httpPort))
+	us := app.NewUrlShortener(s, fmt.Sprintf("%s%s", domainName, httpPort), rand.Int63, hash)
 	// run HTTP server
 	eg.Go(httpserver.Run(ctx, us, httpPort))
 

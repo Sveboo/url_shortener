@@ -35,9 +35,6 @@ func (ps *MapStorage) Write(ctx context.Context, hashUrl string, url string) err
 		return ctx.Err()
 	default:
 		if val, ok := ps.urls[hashUrl]; ok {
-			if url == val {
-				return nil
-			}
 			log.Printf("warning: ambiguous mapping key %s to values %s and %s", hashUrl, val, url)
 		}
 

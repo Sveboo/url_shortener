@@ -4,10 +4,7 @@ package app
 import (
 	"context"
 	"fmt"
-	"math/rand"
 	"shortener/internal/storage"
-
-	"github.com/jxskiss/base62"
 )
 
 // Shortener provides functionality for URL shortening and storage interaction
@@ -21,24 +18,28 @@ type Shortener interface {
 
 // UrlShortener implements Shortener interface
 type UrlShortener struct {
-	s       storage.Storager // underlying storage
-	baseUrl string           // current host URI
+	s        storage.Storager // underlying storage
+	baseUrl  string           // current host URI
+	randInt  func() int64
+	hashFunc func(int64) string
 }
 
-func NewUrlShortener(storage storage.Storager, baseUrl string) *UrlShortener {
+func NewUrlShortener(storage storage.Storager, baseUrl string, randInt func() int64, hashFunc func(int64) string) *UrlShortener {
 	return &UrlShortener{
-		s:       storage,
-		baseUrl: baseUrl,
+		s:        storage,
+		baseUrl:  baseUrl,
+		randInt:  randInt,
+		hashFunc: hashFunc,
 	}
 }
 
 // CreateUrl creates a unique hash for url and writes it to storage
 func (us UrlShortener) CreateUrl(ctx context.Context, url string) (string, error) {
-	urlHash := Hash(url)
+	urlHash := us.hashFunc(us.randInt())
 
 	for {
 		if _, err := us.s.Read(ctx, urlHash); err == nil {
-			urlHash = Hash(url)
+			urlHash = us.hashFunc(us.randInt())
 		} else {
 			break
 		}
@@ -59,10 +60,4 @@ func (us UrlShortener) GetUrl(ctx context.Context, shortUrl string) (string, err
 		return "", err
 	}
 	return url, nil
-}
-
-func Hash(url string) string {
-	randInt := rand.Uint64()
-	shortUrl := base62.EncodeToString(base62.FormatInt(int64(randInt)))
-	return shortUrl
 }
