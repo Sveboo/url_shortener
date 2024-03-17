@@ -22,7 +22,6 @@
     - [Allowed Usage](#allowed-usage)
   - [Endpoints](#endpoints)
   - [Swagger](#swagger)
-  - [Debug Build](#debug-build)
   - [How It Works](#how-it-works)
   - [Roadmap](#roadmap)
   - [Issues](#issues)
@@ -37,7 +36,7 @@
 
 ### Docker
 1. Установите docker engine. Посмотрите [официальную документацию](https://docs.docker.com/engine/install/).
-2. Соберите образ. Запустите `docker build -t url_shortener:latest .` или используйте существующий образ на [Dockerhub](https://hub.docker.com/).
+2. Соберите образ. Запустите `docker build -t url_shortener:latest .` или используйте существующий образ на [Dockerhub](https://hub.docker.com/repository/docker/sveboo/url-shortener/general).
 3. Запустите приложения. Посмотрите [разрешённые режимы](#allowed-usage).
 4. Используйте [эндпоинты](#endpoints).
 
@@ -55,13 +54,6 @@
 ## Swagger
 
 Приложение также предоставляет документацию swagger, доступную с помощью эндпоинта `/docs`. Посмотрите [эндпоинты](#endpoints).
-
-## Debug Build
-
-> [!CAUTION]
-> **Не используйте debug build на production!**
-
-Для сборки с тегом `debug` приложение также обслуживает эндпоинт `/debug/pprof` с метриками для профиля pprof.
 
 ## How It Works
 

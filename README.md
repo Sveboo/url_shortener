@@ -23,7 +23,6 @@ Base62 encoding is used.
     - [Allowed Usage](#allowed-usage)
   - [Endpoints](#endpoints)
   - [Swagger](#swagger)
-  - [Debug Build](#debug-build)
   - [How It Works](#how-it-works)
   - [Roadmap](#roadmap)
   - [Issues](#issues)
@@ -38,7 +37,7 @@ Base62 encoding is used.
 
 ### Docker
 1. Install docker engine. See [official docs](https://docs.docker.com/engine/install/).
-2. Build image. Run `docker build -t url_shortener:latest .` or use existing image at [Dockerhub](https://hub.docker.com/).
+2. Build image. Run `docker build -t url_shortener:latest .` or use existing image at [Dockerhub](https://hub.docker.com/repository/docker/sveboo/url-shortener/general).
 3. Run app. See [allowed usage](#allowed-usage).
 4. Use [endpoints](#endpoints).
 
@@ -56,13 +55,6 @@ Base62 encoding is used.
 ## Swagger
 
 Application also provides swagger documentation accessible with endpoint `/docs`. See [endpoints](#endpoints).
-
-## Debug Build
-
-> [!CAUTION]
->  **Do not use debug build on production!**
-
-For build with tag `debug` application also serves endpoint `/debug/pprof` with metrics for pprof profiler.
 
 ## How It Works
 
