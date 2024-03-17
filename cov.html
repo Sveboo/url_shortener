@@ -1,0 +1,506 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>app: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">shortener/internal/app/app.go (100.0%)</option>
+				
+				<option value="file1">shortener/internal/ports/httpserver/handlers.go (80.0%)</option>
+				
+				<option value="file2">shortener/internal/ports/httpserver/router.go (100.0%)</option>
+				
+				<option value="file3">shortener/internal/ports/httpserver/server.go (21.1%)</option>
+				
+				<option value="file4">shortener/internal/storage/mapstorage.go (75.0%)</option>
+				
+				<option value="file5">shortener/internal/storage/pgxstorage.go (0.0%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">// Package app provides entities for URL shortening
+package app
+
+import (
+        "context"
+        "fmt"
+        "shortener/internal/storage"
+)
+
+// Shortener provides functionality for URL shortening and storage interaction
+type Shortener interface {
+        // CreateUrl is responsible for shortening a URL and writing it to a storage.
+        // Returns a short URL and error if it occured
+        CreateUrl(context.Context, string) (string, error)
+        // GetUrl returns an origin URL by short form and error if it occured
+        GetUrl(context.Context, string) (string, error)
+}
+
+// UrlShortener implements Shortener interface
+type UrlShortener struct {
+        s        storage.Storager // underlying storage
+        baseUrl  string           // current host URI
+        randInt  func() int64
+        hashFunc func(int64) string
+}
+
+func NewUrlShortener(storage storage.Storager, baseUrl string, randInt func() int64, hashFunc func(int64) string) *UrlShortener <span class="cov8" title="1">{
+        return &amp;UrlShortener{
+                s:        storage,
+                baseUrl:  baseUrl,
+                randInt:  randInt,
+                hashFunc: hashFunc,
+        }
+}</span>
+
+// CreateUrl creates a unique hash for url and writes it to storage
+func (us UrlShortener) CreateUrl(ctx context.Context, url string) (string, error) <span class="cov8" title="1">{
+        urlHash := us.hashFunc(us.randInt())
+
+        for </span><span class="cov8" title="1">{
+                if _, err := us.s.Read(ctx, urlHash); err == nil </span><span class="cov8" title="1">{
+                        urlHash = us.hashFunc(us.randInt())
+                }</span> else<span class="cov8" title="1"> {
+                        break</span>
+                }
+        }
+
+        <span class="cov8" title="1">err := us.s.Write(ctx, urlHash, url)
+        if err != nil </span><span class="cov8" title="1">{
+                return "", err
+        }</span>
+
+        <span class="cov8" title="1">return fmt.Sprintf("%s/%s", us.baseUrl, urlHash), nil</span>
+}
+
+// GetUrl converts shortUrl to an origin URL and returns it
+func (us UrlShortener) GetUrl(ctx context.Context, shortUrl string) (string, error) <span class="cov8" title="1">{
+        url, err := us.s.Read(ctx, shortUrl)
+        if err != nil </span><span class="cov8" title="1">{
+                return "", err
+        }</span>
+        <span class="cov8" title="1">return url, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">package httpserver
+
+import (
+        "context"
+        "encoding/json"
+        "log"
+        "net/http"
+        "net/url"
+        "shortener/internal/app"
+        "shortener/internal/errs"
+        "shortener/internal/models"
+        "strings"
+)
+
+// api contains utilities for correct work handler functions
+type api struct {
+        ctx       context.Context
+        shortener app.Shortener
+}
+
+// routeHandlers represents a simple router
+func (a api) routeHandlers(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
+
+        switch r.Method </span>{
+        case http.MethodPost:<span class="cov8" title="1">
+                a.shortenUrl(w, r)</span>
+        case http.MethodGet:<span class="cov8" title="1">
+                a.getFullUrl(w, r)</span>
+        default:<span class="cov0" title="0">
+                w.WriteHeader(http.StatusMethodNotAllowed)
+                urlErrorResponce(w, errs.ErrNotAllowedMethod)</span>
+        }
+}
+
+// shortenUrl expects POST request and returns short url
+//
+//        @Summary                Shorten url
+//        @Description        Shorten url provided in body and save it to storage
+//        @Accept                        json
+//        @Produce                json
+//        @Param                        url        body        models.UserRequest        true        "Original url with protocol included"
+//        @Router                        / [post]
+//
+//        @Success                200        {object}        UserResponse "Url shortened successfully"
+//
+//        @Failure                400        {object}        UserResponse "Json is invalid"
+//        @Failure                422        {object}        UserResponse "Key 'url' is invalid or not provided"
+//        @Failure                500        {object}        UserResponse "Short url creation caused error"
+func (a api) shortenUrl(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
+        var ur models.UserRequest
+        d := json.NewDecoder(r.Body)
+        defer r.Body.Close()
+        err := d.Decode(&amp;ur)
+        if err != nil </span><span class="cov0" title="0">{
+                w.WriteHeader(http.StatusBadRequest)
+                urlErrorResponce(w, err)
+                log.Println(err)
+                return
+        }</span>
+
+        <span class="cov8" title="1">if isValidUrl(ur.Url) != nil </span><span class="cov8" title="1">{
+                w.WriteHeader(http.StatusUnprocessableEntity)
+                urlErrorResponce(w, errs.ErrInvalidUrl)
+                return
+        }</span>
+
+        <span class="cov8" title="1">shortUrl, err := a.shortener.CreateUrl(a.ctx, ur.Url)
+        if err != nil </span><span class="cov8" title="1">{
+                w.WriteHeader(http.StatusInternalServerError)
+                urlErrorResponce(w, err)
+                log.Println(err)
+                return
+        }</span>
+
+        <span class="cov8" title="1">w.WriteHeader(http.StatusOK)
+        urlSuccessResponse(w, shortUrl)</span>
+}
+
+// GetShortUrl expects GET request and returns origin url by short form
+// - 400, if short url not found in storage
+
+// @Summary                Get original url
+// @Description        Returns origin url by short form
+// @Accept                        json
+// @Produce                json
+// @Param                        short_url        query        string        true        "Short url hash"
+// @Router                        /{hash} [get]
+//
+// @Success                200        {object}        UserResponse "Short url exists in storage"
+//
+// @Failure                400        {object}        UserResponse "Short url not found in storage"
+func (a api) getFullUrl(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
+        shortUrl := strings.TrimPrefix(r.URL.Path, "/")
+        url, err := a.shortener.GetUrl(a.ctx, shortUrl)
+        if err != nil </span><span class="cov8" title="1">{
+                w.WriteHeader(http.StatusBadRequest)
+                urlErrorResponce(w, err)
+                return
+        }</span>
+
+        <span class="cov8" title="1">w.WriteHeader(http.StatusOK)
+        urlSuccessResponse(w, url)</span>
+}
+
+func isValidUrl(u string) error <span class="cov8" title="1">{
+        _, err := url.ParseRequestURI(u)
+        if err != nil </span><span class="cov8" title="1">{
+                return err
+        }</span>
+        <span class="cov8" title="1">return nil</span>
+}
+
+// urlSuccessResponse returns success response
+func urlSuccessResponse(w http.ResponseWriter, url string) <span class="cov8" title="1">{
+        w.Header().Set("Content-Type", "application/json")
+        jsonResponse, err := json.Marshal(UserResponse{Url: url, Err: ""})
+        if err != nil </span><span class="cov0" title="0">{
+                log.Println(err.Error())
+                return
+        }</span>
+        <span class="cov8" title="1">w.Write(jsonResponse)</span>
+}
+
+// urlErrorResponce returns error response
+func urlErrorResponce(w http.ResponseWriter, err error) <span class="cov8" title="1">{
+        w.Header().Set("Content-Type", "application/json")
+        jsonResponse, err := json.Marshal(UserResponse{Url: "", Err: err.Error()})
+        if err != nil </span><span class="cov0" title="0">{
+                log.Println(err.Error())
+                return
+        }</span>
+        <span class="cov8" title="1">w.Write(jsonResponse)</span>
+}
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">package httpserver
+
+import (
+        "net/http"
+
+        httpSwagger "github.com/swaggo/http-swagger"
+)
+
+// route sets the handler for the path "/"
+func route(a api) *http.ServeMux <span class="cov8" title="1">{
+        mux := http.NewServeMux()
+        mux.HandleFunc("/", a.routeHandlers)
+        mux.Handle("/docs/", httpSwagger.WrapHandler)
+
+        return mux
+}</span>
+</pre>
+		
+		<pre class="file" id="file3" style="display: none">// Package httpserver provides utilities to run http server
+package httpserver
+
+import (
+        "context"
+        "errors"
+        "fmt"
+        "log"
+        "net/http"
+        "shortener/internal/app"
+        "time"
+)
+
+func newHTTPServer(ctx context.Context, port string, s app.Shortener) *http.Server <span class="cov8" title="1">{
+        api := api{
+                ctx:       ctx,
+                shortener: s,
+        }
+        mux := route(api)
+        service := &amp;http.Server{Addr: port, Handler: mux}
+        return service
+}</span>
+
+// Run runs Sortener app no the given port
+func Run(ctx context.Context, s app.Shortener, port string) func() error <span class="cov0" title="0">{
+        return func() error </span><span class="cov0" title="0">{
+                httpServer := newHTTPServer(ctx, port, s)
+
+                errCh := make(chan error)
+
+                defer func() </span><span class="cov0" title="0">{
+                        shCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+                        defer cancel()
+
+                        if err := httpServer.Shutdown(shCtx); err != nil </span><span class="cov0" title="0">{
+                                log.Printf("can't close http server listening on %s %s", httpServer.Addr, err.Error())
+                        }</span>
+
+                        <span class="cov0" title="0">close(errCh)</span>
+                }()
+
+                <span class="cov0" title="0">go func() </span><span class="cov0" title="0">{
+                        if err := httpServer.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) </span><span class="cov0" title="0">{
+                                errCh &lt;- err
+                        }</span>
+                }()
+
+                <span class="cov0" title="0">select </span>{
+                case &lt;-ctx.Done():<span class="cov0" title="0">
+                        return ctx.Err()</span>
+                case err := &lt;-errCh:<span class="cov0" title="0">
+                        return fmt.Errorf("http server can't listen and serve requests: %w", err)</span>
+                }
+        }
+}
+</pre>
+		
+		<pre class="file" id="file4" style="display: none">package storage
+
+import (
+        "context"
+        "log"
+        "shortener/internal/errs"
+)
+
+// MapStorage provides methods to store data in map
+type MapStorage struct {
+        urls map[string]string
+}
+
+func NewMapStorage() *MapStorage <span class="cov8" title="1">{
+        return &amp;MapStorage{urls: map[string]string{}}
+}</span>
+
+// Read returns origin url by urlHash
+func (ps *MapStorage) Read(ctx context.Context, hashUrl string) (string, error) <span class="cov8" title="1">{
+        select </span>{
+        case &lt;-ctx.Done():<span class="cov0" title="0">
+                return "", ctx.Err()</span>
+        default:<span class="cov8" title="1">
+                if url, ok := ps.urls[hashUrl]; ok </span><span class="cov8" title="1">{
+                        return url, nil
+                }</span>
+                <span class="cov8" title="1">return "", errs.ErrUrlNotFound</span>
+        }
+}
+
+// Write writes hashUrl as a key and url as a value into the map
+func (ps *MapStorage) Write(ctx context.Context, hashUrl string, url string) error <span class="cov8" title="1">{
+        select </span>{
+        case &lt;-ctx.Done():<span class="cov0" title="0">
+                return ctx.Err()</span>
+        default:<span class="cov8" title="1">
+                if val, ok := ps.urls[hashUrl]; ok </span><span class="cov0" title="0">{
+                        log.Printf("warning: ambiguous mapping key %s to values %s and %s", hashUrl, val, url)
+                }</span>
+
+                <span class="cov8" title="1">ps.urls[hashUrl] = url
+                return nil</span>
+        }
+}
+</pre>
+		
+		<pre class="file" id="file5" style="display: none">// Package storage provides types to store data
+package storage
+
+import (
+        "context"
+        "sync"
+
+        "shortener/internal/errs"
+
+        "github.com/jackc/pgx/v5/pgxpool"
+)
+
+// PgxStorage provides methods to communicate with Postgres
+type PgxStorage struct {
+        db *pgxpool.Pool // conntection pool
+}
+
+// make sure that the database connection will only be established once per our application lifetime
+var pgOnce sync.Once
+
+func NewPgxStorage(ctx context.Context, dbUrl string) (*PgxStorage, error) <span class="cov0" title="0">{
+        var pgInstance PgxStorage
+        var connErr error
+        pgOnce.Do(func() </span><span class="cov0" title="0">{
+                db, err := pgxpool.New(ctx, dbUrl)
+                if err != nil </span><span class="cov0" title="0">{
+                        connErr = err
+                        return
+                }</span>
+                <span class="cov0" title="0">pgInstance = PgxStorage{db}</span>
+        })
+
+        <span class="cov0" title="0">if connErr != nil </span><span class="cov0" title="0">{
+                return nil, connErr
+        }</span>
+        <span class="cov0" title="0">return &amp;pgInstance, nil</span>
+}
+
+// Ping checks connections
+func (ps *PgxStorage) Ping(ctx context.Context) error <span class="cov0" title="0">{
+        return ps.db.Ping(ctx)
+}</span>
+
+// Close closes connection
+func (ps *PgxStorage) Close() <span class="cov0" title="0">{
+        ps.db.Close()
+}</span>
+
+// Read returns origin url by urlHash
+func (ps PgxStorage) Read(ctx context.Context, urlHash string) (string, error) <span class="cov0" title="0">{
+        query := `SELECT url FROM "urls" WHERE url_hash = $1 LIMIT 1`
+        row := ps.db.QueryRow(ctx, query, urlHash)
+        var url string
+        row.Scan(&amp;url)
+        if url == "" </span><span class="cov0" title="0">{
+                return url, errs.ErrUrlNotFound
+        }</span>
+
+        <span class="cov0" title="0">return url, nil</span>
+}
+
+// Write writes urlHash and url pair
+func (ps PgxStorage) Write(ctx context.Context, urlHash string, url string) error <span class="cov0" title="0">{
+        query := `INSERT INTO urls (url_hash, url) VALUES ($1, $2)`
+        _, err := ps.db.Exec(ctx, query, urlHash, url)
+
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov0" title="0">return nil</span>
+}
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>
